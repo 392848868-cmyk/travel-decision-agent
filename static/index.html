@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>出行决策 Agent</title>
+<style>
+  :root {
+    --bg: #f4f6f8;
+    --card: #ffffff;
+    --text: #1a1d21;
+    --muted: #6b7280;
+    --line: #e5e7eb;
+    --brand: #0f9d76;
+    --brand-soft: #e6f7f1;
+    --user: #0f9d76;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+    background: var(--bg); color: var(--text);
+    display: flex; justify-content: center;
+  }
+  #app {
+    width: 100%; max-width: 820px; height: 100dvh;
+    background: var(--card); display: flex; flex-direction: column;
+    box-shadow: 0 0 40px rgba(0,0,0,.06);
+  }
+  header {
+    padding: 14px 18px; border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+  }
+  .logo {
+    width: 38px; height: 38px; border-radius: 11px; flex-shrink: 0;
+    background: linear-gradient(135deg, #0f9d76, #35c79a);
+    display: flex; align-items: center; justify-content: center; font-size: 20px;
+  }
+  .title { font-size: 16px; font-weight: 600; }
+  .subtitle { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .spacer { flex: 1; }
+  .ghost-btn {
+    border: 1px solid var(--line); background: #fff; color: var(--muted);
+    border-radius: 8px; padding: 6px 12px; font-size: 13px; cursor: pointer;
+  }
+  .ghost-btn:hover { border-color: var(--brand); color: var(--brand); }
+
+  #chat { flex: 1; overflow-y: auto; padding: 18px; scroll-behavior: smooth; }
+  .msg { display: flex; gap: 10px; margin-bottom: 18px; }
+  .msg.user { flex-direction: row-reverse; }
+  .avatar {
+    width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 15px;
+  }
+  .msg.agent .avatar { background: var(--brand-soft); }
+  .msg.user .avatar { background: #eef0f2; }
+  .bubble {
+    max-width: 78%; padding: 11px 14px; border-radius: 14px;
+    line-height: 1.7; font-size: 14.5px; word-break: break-word;
+  }
+  .msg.agent .bubble { background: #f7f9fa; border-top-left-radius: 4px; }
+  .msg.user .bubble { background: var(--user); color: #fff; border-top-right-radius: 4px; }
+
+  .tools { max-width: 78%; margin-bottom: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .tool-chip {
+    font-size: 12px; color: var(--brand); background: var(--brand-soft);
+    border-radius: 999px; padding: 3px 10px; animation: fade .3s ease;
+  }
+  @keyframes fade { from { opacity: 0; transform: translateY(3px);} to {opacity:1;} }
+
+  .cursor { display: inline-block; width: 7px; height: 15px; background: var(--brand);
+    vertical-align: text-bottom; animation: blink 1s steps(2) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* 渲染后的 Markdown 元素 */
+  .bubble h3 { font-size: 15px; margin: 12px 0 6px; }
+  .bubble h3:first-child { margin-top: 0; }
+  .bubble p { margin: 6px 0; }
+  .bubble ul { margin: 6px 0; padding-left: 20px; }
+  .bubble li { margin: 3px 0; }
+  .bubble table { border-collapse: collapse; width: 100%; font-size: 13px; margin: 8px 0; }
+  .bubble th, .bubble td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; }
+  .bubble th { background: #f1f4f6; font-weight: 600; }
+  .bubble code { background: #eef0f2; padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+  .bubble pre { background: #f1f4f6; padding: 10px; border-radius: 8px; overflow-x: auto; }
+
+  .empty { text-align: center; color: var(--muted); font-size: 13.5px; padding: 40px 20px; line-height: 1.9; }
+  .example {
+    display: inline-block; margin: 6px 4px 0; padding: 7px 12px; border: 1px dashed var(--line);
+    border-radius: 999px; font-size: 13px; color: var(--muted); cursor: pointer; background: #fff;
+  }
+  .example:hover { border-color: var(--brand); color: var(--brand); }
+
+  footer { border-top: 1px solid var(--line); padding: 12px 14px; flex-shrink: 0; background: #fff; }
+  .input-row { display: flex; gap: 10px; align-items: flex-end; }
+  textarea {
+    flex: 1; resize: none; border: 1px solid var(--line); border-radius: 12px;
+    padding: 11px 13px; font-size: 14.5px; font-family: inherit; line-height: 1.5;
+    max-height: 120px; outline: none;
+  }
+  textarea:focus { border-color: var(--brand); }
+  .send {
+    background: var(--brand); color: #fff; border: none; border-radius: 12px;
+    padding: 0 20px; height: 44px; font-size: 14.5px; cursor: pointer; flex-shrink: 0;
+  }
+  .send:disabled { background: #c4cbd0; cursor: not-allowed; }
+  .hint { font-size: 11.5px; color: var(--muted); margin-top: 7px; text-align: center; }
+
+  @media (max-width: 600px) {
+    #chat { padding: 14px 12px; }
+    .bubble, .tools { max-width: 85%; }
+    .hint { display: none; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="logo">🧭</div>
+    <div>
+      <div class="title">出行决策 Agent</div>
+      <div class="subtitle">输入位置 + 品牌偏好，帮你挑最近的商场</div>
+    </div>
+    <div class="spacer"></div>
+    <button class="ghost-btn" id="resetBtn">新会话</button>
+  </header>
+
+  <div id="chat">
+    <div class="empty">
+      告诉我你的位置和想去的地方，我帮你查附近商场 🏬<br />
+      <span class="example">我在红莲南路地铁站附近，想去一个有倍轻松的商场</span>
+      <span class="example">北京西单附近有什么商场</span>
+    </div>
+  </div>
+
+  <footer>
+    <div class="input-row">
+      <textarea id="input" rows="1" placeholder="例如：我在红莲南路地铁站附近，想去一个有倍轻松又有西屋的商场"></textarea>
+      <button class="send" id="sendBtn">发送</button>
+    </div>
+    <div class="hint">Enter 发送 · Shift+Enter 换行 · 支持连续追问，我会记住前面聊过的内容</div>
+  </footer>
+</div>
+
+<script>
+const chatEl = document.getElementById('chat');
+const inputEl = document.getElementById('input');
+const sendBtn = document.getElementById('sendBtn');
+const resetBtn = document.getElementById('resetBtn');
+
+let threadId = 't-' + Date.now();
+let busy = false;
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/** 极简 Markdown 渲染：标题 / 加粗 / 列表 / 表格 / 行内代码 / 代码块 */
+function renderMarkdown(text) {
+  let html = escapeHtml(text);
+  html = html.replace(/```([\s\S]*?)```/g, (_m, code) => `<pre><code>${code.trim()}</code></pre>`);
+  html = html.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+
+  const lines = html.split('\n');
+  const out = [];
+  let tableRows = [];
+  let inList = false;
+
+  const flushTable = () => {
+    if (!tableRows.length) return;
+    let table = '<table>';
+    tableRows.forEach((cells, i) => {
+      const tag = i === 0 ? 'th' : 'td';
+      table += '<tr>' + cells.map(c => `<${tag}>${c}</${tag}>`).join('') + '</tr>';
+    });
+    table += '</table>';
+    out.push(table);
+    tableRows = [];
+  };
+  const closeList = () => { if (inList) { out.push('</ul>'); inList = false; } };
+
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+    if (/^\s*\|.*\|\s*$/.test(line)) {
+      closeList();
+      const cells = line.split('|').slice(1, -1).map(c => c.trim());
+      if (cells.every(c => /^:?-{2,}:?$/.test(c))) continue; // 分隔行
+      tableRows.push(cells);
+      continue;
+    }
+    flushTable();
+
+    if (/^#{1,4}\s+/.test(line)) {
+      closeList();
+      out.push(`<h3>${line.replace(/^#{1,4}\s+/, '')}</h3>`);
+      continue;
+    }
+    if (/^\s*[-*]\s+/.test(line)) {
+      if (!inList) { out.push('<ul>'); inList = true; }
+      out.push(`<li>${line.replace(/^\s*[-*]\s+/, '')}</li>`);
+      continue;
+    }
+    closeList();
+    if (line.trim() === '') continue;
+    out.push(`<p>${line.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')}</p>`);
+  }
+  flushTable();
+  closeList();
+  return out.join('');
+}
+
+function addBubble(role) {
+  const empty = chatEl.querySelector('.empty');
+  if (empty) empty.remove();
+
+  const wrap = document.createElement('div');
+  wrap.className = 'msg ' + role;
+  wrap.innerHTML = `<div class="avatar">${role === 'user' ? '🙂' : '🧭'}</div>`;
+
+  const body = document.createElement('div');
+  body.style.display = 'flex';
+  body.style.flexDirection = 'column';
+
+  if (role === 'agent') {
+    const tools = document.createElement('div');
+    tools.className = 'tools';
+    body.appendChild(tools);
+    wrap.dataset.tools = 'pending';
+    // 用自定义属性挂引用，避免全局查找错位
+    wrap._toolsBox = tools;
+  }
+
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  if (role === 'agent') bubble.innerHTML = '<span class="cursor"></span>';
+  body.appendChild(bubble);
+  wrap.appendChild(body);
+  chatEl.appendChild(wrap);
+  chatEl.scrollTop = chatEl.scrollHeight;
+  return { wrap, bubble };
+}
+
+function addTool(wrap, name) {
+  const box = wrap._toolsBox;
+  if (!box) return;
+  const chip = document.createElement('span');
+  chip.className = 'tool-chip';
+  chip.textContent = '🔧 ' + name;
+  box.appendChild(chip);
+  chatEl.scrollTop = chatEl.scrollHeight;
+}
+
+function autoResize() {
+  inputEl.style.height = 'auto';
+  inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
+}
+
+async function send() {
+  const text = inputEl.value.trim();
+  if (!text || busy) return;
+
+  busy = true;
+  sendBtn.disabled = true;
+  inputEl.value = '';
+  autoResize();
+
+  const user = addBubble('user');
+  user.bubble.textContent = text;
+
+  const agent = addBubble('agent');
+  let buffer = '';
+
+  try {
+    const resp = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text, thread_id: threadId })
+    });
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let cache = '';
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      cache += decoder.decode(value, { stream: true });
+      const lines = cache.split('\n');
+      cache = lines.pop();
+
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        let ev;
+        try { ev = JSON.parse(line); } catch (e) { continue; }
+
+        if (ev.type === 'tool') {
+          addTool(agent.wrap, ev.label || ev.name);
+        } else if (ev.type === 'token') {
+          buffer += ev.text;
+          agent.bubble.innerHTML = renderMarkdown(buffer) + '<span class="cursor"></span>';
+          chatEl.scrollTop = chatEl.scrollHeight;
+        } else if (ev.type === 'error') {
+          buffer += '\n\n⚠️ ' + ev.text;
+          agent.bubble.innerHTML = renderMarkdown(buffer);
+        }
+      }
+    }
+    agent.bubble.innerHTML = renderMarkdown(buffer) ||
+      '<span style="color:#6b7280">（没有返回内容，请检查环境变量配置）</span>';
+  } catch (err) {
+    agent.bubble.innerHTML = `<span style="color:#c0392b">请求失败：${escapeHtml(String(err))}</span>`;
+  } finally {
+    busy = false;
+    sendBtn.disabled = false;
+    inputEl.focus();
+  }
+}
+
+sendBtn.addEventListener('click', send);
+inputEl.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+});
+inputEl.addEventListener('input', autoResize);
+resetBtn.addEventListener('click', () => {
+  threadId = 't-' + Date.now();
+  chatEl.innerHTML = '<div class="empty">已开启新会话，重新告诉我你的位置吧 🏬</div>';
+});
+document.querySelectorAll('.example').forEach(el => {
+  el.addEventListener('click', () => { inputEl.value = el.textContent; inputEl.focus(); autoResize(); });
+});
+autoResize();
+</script>
+</body>
+</html>

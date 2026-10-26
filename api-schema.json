@@ -1,0 +1,26 @@
+[
+  {
+    "name": "geocode_location",
+    "description": "把用户描述的地点（如「红莲南路地铁站」）转换成经纬度坐标，供后续检索商场和计算距离使用。",
+    "method": "GET",
+    "endpoint": "/v3/geocode/geo"
+  },
+  {
+    "name": "search_nearby_malls",
+    "description": "按经纬度检索周边商场/购物中心，用于用户提供了位置后获取候选商场清单。",
+    "method": "GET",
+    "endpoint": "/v3/place/around"
+  },
+  {
+    "name": "check_brand_in_mall",
+    "description": "核对指定商场附近是否存在某个品牌或店铺，用于匹配用户的品牌偏好。",
+    "method": "GET",
+    "endpoint": "/v3/place/around"
+  },
+  {
+    "name": "get_route_distance",
+    "description": "计算从起点到目标商场的距离，用于判断哪个商场更近。",
+    "method": "GET",
+    "endpoint": "/v3/distance"
+  }
+]

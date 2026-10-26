@@ -9,8 +9,9 @@ dist/
 .edgeone/
 .edgeone.zip
 
-# Environment variables
+# Environment variables（含密钥，绝不提交）
 .env
+.env.local
 agents-python/.env
 agents-python/chat/.env
 
@@ -29,13 +30,10 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 uv.toml
-# Local toolchain pin — EdgeOne Makers runs Python 3.12; let each
-# contributor manage their own pyenv/asdf without forcing a version.
 .python-version
+
+# 日志
+*.log
 
 # Internal planning docs
 plan/
-
-# AI assistant local instructions
-CLAUDE.md
-AGENTS.md

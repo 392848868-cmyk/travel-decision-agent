@@ -1,3 +1,19 @@
+# ---- Agent 核心（LangGraph，线上 agents/ 与本地 app.py 共用）----
+# 锁定 <2.0：langgraph 2.0 起 create_react_agent 会迁移到 langchain.agents
+langgraph>=0.2.60,<2.0
+langchain-core>=0.3.0,<2.0
+langchain-openai>=0.2.0,<2.0
+
+# ---- 平台运行需要（framework 声明为 openai-agents-sdk，保留以免运行时缺包）----
 openai-agents>=0.17.3
 openai>=2.37.0
+
+# ---- 高德地图 HTTP 调用 ----
+requests>=2.31.0
+
+# ---- 通用 ----
 python-dotenv>=1.2.2
+
+# ---- 仅本地调试需要（app.py 的 FastAPI 入口；线上走 agents/，用不到）----
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
