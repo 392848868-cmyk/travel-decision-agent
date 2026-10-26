@@ -4,7 +4,8 @@ langgraph>=0.2.60,<2.0
 langchain-core>=0.3.0,<2.0
 langchain-openai>=0.2.0,<2.0
 
-# ---- 平台运行需要（framework 声明为 openai-agents-sdk，保留以免运行时缺包）----
+# ---- 平台运行需要（edgeone.json 声明 framework=langgraph）----
+# openai-agents 仅为兼容保留，业务代码不依赖它
 openai-agents>=0.17.3
 openai>=2.37.0
 

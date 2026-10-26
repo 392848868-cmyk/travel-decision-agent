@@ -8,7 +8,7 @@
   },
   "agents": {
     "timeout": 300,
-    "framework": "openai-agents-sdk",
+    "framework": "langgraph",
     "sandbox": {
       "timeout": 300
     }
