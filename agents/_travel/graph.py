@@ -19,6 +19,7 @@ from typing import Any, AsyncIterator
 
 from langchain_core.messages import AIMessage, AIMessageChunk, HumanMessage
 from langchain_openai import ChatOpenAI
+from langgraph.errors import GraphRecursionError
 from langgraph.prebuilt import create_react_agent
 
 from .config import get_llm_config
@@ -30,6 +31,10 @@ try:  # langgraph >= 0.3
     from langgraph.checkpoint.memory import InMemorySaver as _Checkpointer
 except ImportError:  # pragma: no cover
     from langgraph.checkpoint.memory import MemorySaver as _Checkpointer  # type: ignore
+
+# 步数上限：一次完整流程最多约 10~15 步（解析→检索→5 个商场核对→距离→总结），
+# 留足余量，避免被高德偶发的重试拖到中断。
+RECURSION_LIMIT = 60
 
 _checkpointer: Any | None = None
 _graph: Any | None = None
@@ -103,7 +108,7 @@ async def astream_agent(message: str, thread_id: str = "default") -> AsyncIterat
     emitted_tools: set[str] = set()
     try:
         graph = get_graph()  # 密钥缺失等配置错误会在这里抛出，统一转成 error 事件
-        config = {"configurable": {"thread_id": thread_id}, "recursion_limit": 25}
+        config = {"configurable": {"thread_id": thread_id}, "recursion_limit": RECURSION_LIMIT}
         async for chunk, meta in graph.astream(
             {"messages": [HumanMessage(content=message)]},
             config=config,
@@ -159,8 +164,17 @@ async def astream_agent(message: str, thread_id: str = "default") -> AsyncIterat
 def run_agent(message: str, thread_id: str = "default") -> str:
     """非流式执行，适合命令行调试或其他运行时集成。"""
     graph = get_graph()
-    config = {"configurable": {"thread_id": thread_id}, "recursion_limit": 25}
-    result = graph.invoke({"messages": [HumanMessage(content=message)]}, config=config)
+    config = {"configurable": {"thread_id": thread_id}, "recursion_limit": RECURSION_LIMIT}
+    try:
+        result = graph.invoke({"messages": [HumanMessage(content=message)]}, config=config)
+    except GraphRecursionError:
+        # 到达步数上限时不要抛异常，用已有对话历史里最后一条 AI 回复兜底
+        snapshot = graph.get_state(config)
+        messages = (snapshot.values or {}).get("messages", [])
+        for m in reversed(messages):
+            if isinstance(m, AIMessage) and not getattr(m, "tool_calls", None):
+                return _to_text(m.content)
+        return "抱歉，这一轮查询步骤过多被中断了，请换个更具体的条件再问一次。"
     messages = result.get("messages", [])
     if not messages:
         return ""

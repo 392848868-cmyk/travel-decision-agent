@@ -69,28 +69,38 @@ def check_brand_in_mall(mall_location: str, brand: str, radius: int = 400) -> st
     """核对某个商场里（附近）是否存在指定品牌 / 店铺。
 
     调用前提：mall_location 是商场的坐标，来自 search_nearby_malls 的返回值。
-    需要对多个品牌核对时，请分别调用本工具。
+
+    重要：需要核对多个品牌时，请**在一次调用里用逗号分隔传多个品牌**
+    （例如 brand="倍轻松,西屋"），不要拆成多次调用 —— 高德接口有并发上限，
+    拆开调用容易被限流。
 
     Args:
         mall_location: 商场坐标，格式 "116.1,39.2"。
-        brand: 品牌名或店铺名，如「倍轻松」「西屋」。
+        brand: 品牌名或店铺名；支持逗号分隔的多个品牌，如「倍轻松,西屋」。
         radius: 在商场坐标周边多大范围内查找，默认 400 米。
 
     Returns:
-        JSON：{"brand": ..., "found": true/false, "stores": [{name, address, location, distance}]}
+        JSON：{"mall": 坐标, "results": [{"brand":..., "found": true/false, "stores": [...]}]}
     """
+    brands = [b.strip() for b in (brand or "").replace("，", ",").split(",") if b.strip()]
+    if not brands:
+        return _fail(ValueError("brand 不能为空"))
+
     try:
-        stores = amap.search_around(mall_location, keywords=brand, radius=radius, max_results=5)
-        # 过滤掉明显不相关的结果：名称里必须包含品牌关键字的连续片段
-        matched = [s for s in stores if brand.strip() in (s["name"] or "")]
-        return _ok(
-            {
-                "brand": brand,
-                "found": bool(matched),
-                "stores": matched[:3],
-                "hint": "" if matched else "未在该商场附近检索到该品牌，可能是没有门店或品牌名不准确。",
-            }
-        )
+        results = []
+        for one in brands:
+            stores = amap.search_around(mall_location, keywords=one, radius=radius, max_results=5)
+            # 过滤掉明显不相关的结果：名称里必须包含品牌关键字的连续片段
+            matched = [s for s in stores if one in (s["name"] or "")]
+            results.append(
+                {
+                    "brand": one,
+                    "found": bool(matched),
+                    "stores": matched[:3],
+                    "hint": "" if matched else "未在该商场附近检索到该品牌，可能是没有门店或品牌名不准确。",
+                }
+            )
+        return _ok({"mall": mall_location, "results": results})
     except Exception as exc:  # noqa: BLE001
         return _fail(exc)
 
