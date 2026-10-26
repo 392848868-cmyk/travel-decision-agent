@@ -1,5 +1,44 @@
-把部署成功后拿到的公开预览地址填在这里，例如：
+出行决策 Agent —— 公开访问地址
+================================================
 
-https://xxxxxx.edgeone.app
+【正式访问地址】（本次部署，提交 2dbb86f）
 
-（自定义域名为选做项，配置方式见 README 与课程文档第八步）
+https://travel-decision-agent-dpmch9y2g9ua.edgeone.cool?eo_token=1a8d648d4b22936b7b84c6578d9e9977&eo_time=1792985563
+
+不带 token 的基础域名：
+https://travel-decision-agent-dpmch9y2g9ua.edgeone.cool
+
+
+【重要提示：预览链接有效期为 3 小时】
+本项目加速区域选择「全球可用区（含中国大陆）」，因此平台发放的是带签名的
+预览链接（eo_token / eo_time），有效期 3 小时，过期后访问会返回 401。
+
+若链接已过期，按下面两步重新获取，约 1 分钟即可：
+  1. 打开 EdgeOne Makers 控制台 → 进入项目 travel-decision-agent
+  2. 左侧「构建部署」→ 在最新一条部署记录右侧点「预览」，浏览器地址栏即为新的访问地址
+
+也可在「项目概览」页复制访问地址。
+
+
+【部署信息】
+  部署平台：腾讯云 EdgeOne Makers（EdgeOne Pages）
+  加速区域：全球可用区（含中国大陆）
+  生产分支：main
+  最新提交：2dbb86f（页面标题改为「出行决策助手 · Travel Decision Agent」）
+  构建命令：npm run build        输出目录：dist        框架预设：Vite
+  后端路由：POST /chat（文件 agents/chat/index.py 自动映射）
+  运行时依赖：Python（langgraph + langchain-openai + 高德 Web 服务 API）
+
+  说明：本仓库基于课程指定模板 TencentEdgeOne/openai-agent-starter-python Fork，
+  模板不含 .github/workflows，构建部署由 EdgeOne Makers 平台完成，
+  故 actions-success.png 提交的是 Makers 构建部署成功页截图。
+
+
+【测试用例复现方式】（在页面对话框中输入即可，两句话要在同一个会话里连续发送）
+  第一句：我在红莲南路地铁站附近，我想要去一个既有倍轻松又有西屋的离得近的商场，帮我推荐。
+  第二句：如果不要求两个品牌同时存在，还有没有距离更近的选择？
+
+  预期结果：
+  - 第一句：调用「地点解析 → 检索附近商场 → 核对品牌门店」，推荐龙湖北京丽泽天街（约 1.2 km）
+  - 第二句：沿用上一轮的位置与候选数据，补充核对剩余商场后给出全量对比，
+            说明「放宽条件后也没有更近的选择」，体现多轮对话记忆
